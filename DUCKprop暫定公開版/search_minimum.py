@@ -166,7 +166,7 @@ plt.savefig('optimal_cl_vs_cl_re.png')
 plt.show()
 
 #まとめ
-optimaized_cl = lambda A: cl_spline(A)
+optimaized_cl = lambda A: cl_int(A)
 
 
 

@@ -242,10 +242,10 @@ F_CL = lambda gamma: dae51.CL_alphaRe(F_alpha(gamma),F_Re(gamma))
 F_CD = lambda gamma: dae51.CD_alphaRe(F_alpha(gamma),F_Re(gamma))
 
 #局所揚力
-F_L = lambda gamma: (1/2)*delta_B*chord*F_CL(gamma)*(F_V(gamma))**2
+F_L = lambda gamma: (1/2)*delta_B*RHO*chord*F_CL(gamma)*(F_V(gamma))**2
 
 #局所抗力
-F_D = lambda gamma: (1/2)*delta_B*chord*F_CD(gamma)*(F_V(gamma))**2
+F_D = lambda gamma: (1/2)*delta_B*RHO*chord*F_CD(gamma)*(F_V(gamma))**2
 
 #循環
 F_gamma = lambda gamma: F_L(gamma) / (RHO * F_V(gamma))
@@ -294,10 +294,10 @@ fCL = dae51.CL_alphaRe(falpha , fRe)
 fCD = dae51.CD_alphaRe(falpha , fRe)
 
 #初期局所揚力
-fL = (1/2)*delta_B*chord*fCL*(fV)**2
+fL = (1/2)*delta_B*RHO*chord*fCL*(fV)**2
 
 #初期局所抗力
-fD = (1/2)*delta_B*chord*fCD*(fV)**2
+fD = (1/2)*delta_B*RHO*chord*fCD*(fV)**2
 
 #初期推力
 fT = B * numpy.sum(fL * numpy.cos(fphi) - fD * numpy.sin(fphi))
@@ -318,8 +318,7 @@ gamma = fgamma #初期値
 T = fT #初期値
 T_pre = 1 #仮置き
 
-while numpy.abs( T - T_pre ) < 1e-6 :
-    T_pre = T #T_preを更新
+while numpy.abs( T - T_pre ) >
     T = F_T(gamma) #Tを更新
     gamma = F_gamma(gamma) #gammaを更新
 

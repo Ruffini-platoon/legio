@@ -9,8 +9,6 @@ from scipy.interpolate import RegularGridInterpolator, griddata
 from scipy import optimize
 import matplotlib.pyplot as plt
 
-from constants_and_settings import *
-
 numpy.set_printoptions(
     threshold = numpy.inf,
     linewidth = 1e3

@@ -326,6 +326,3 @@ while numpy.abs( T - T_pre ) < 1e-6 :
 print(F_T(gamma))
 print(F_P(gamma))
 print(F_eta(gamma))
-
-plt.plot( r, gamma)
-plt(show)

@@ -366,20 +366,6 @@ Object = lambda gamma: numpy.linalg.norm( F_gamma(gamma) - (gamma) ) if print('t
 ffgamma = numpy.sin(numpy.linspace(0,1,N) * numpy.pi) + 0.01
 #ffgamma = fgamma #やめたほうがいい
 
-result = minimize(
-    Object,
-    x0=ffgamma,
-    options={"maxiter":1e8,"ftol":1e-3},
-    method='SLSQP'
-)
-print('complete')
-print()
-
-#結果の表示
-print('解析結果 @ U_inf = ' ,U_inf,' RPM = ',RPM,)
-print(F_T(result.x),' N')
-print(F_eta(result.x),' %')
-
 if numpy.isnan(F_T(ffgamma)):#初期値で推力がnanになったらあきらめる
     print('解析結果 @ U_inf = ' ,U_inf,' RPM = ',RPM,)
     print('Analysis failed')

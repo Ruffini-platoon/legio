@@ -6,15 +6,15 @@ from scipy import interpolate
 from scipy.optimize import minimize
 
 from Load_Prop import large_table , delta_B , CP , N
-from load_and_interpolate import dae51
+from load_and_interpolate import dae51 , GEMINI , ge51_25 , ge51_50 , ge51_75
 
 r = large_table[:,0]
 chord = large_table[:,1]
 theta = large_table[:,2]
 
 #解析したい点を入力
-U_inf = 9 # 機速[m/s]
-RPM   = 140 # ペラ回転数[rpm]
+U_inf = 0 # 機速[m/s]
+RPM   = 130 # ペラ回転数[rpm],(0にしないこと)
 
 # 物理定数
 RHO = 1.225
@@ -244,10 +244,16 @@ F_Re = lambda gamma: F_V(gamma)*chord / NU
 #半径位置によって参照する翼型データを場合分け
 def F_CL( gamma ):
     for gam, rad in zip(gamma, r):
-        if rad < 1.45:
+        if rad < 0.114 or 1.362 < rad:
+            return GEMINI.CL_alphaRe(F_alpha(gamma),F_Re(gamma))
+        elif 0.114 <= rad < 0.178 or 1.33 <= rad < 1.362:
+            return ge51_25.CL_alphaRe(F_alpha(gamma),F_Re(gamma))
+        elif 0.178 <= rad < 0.242 or 1.298 <= rad < 1.33:
+            return ge51_50.CL_alphaRe(F_alpha(gamma),F_Re(gamma))
+        elif 0.242 <= rad < 0.306 or 1.202 <= rad < 1.298:
+            return ge51_75.CL_alphaRe(F_alpha(gamma),F_Re(gamma))
+        elif 0.306 <= rad < 1.202:
             return dae51.CL_alphaRe(F_alpha(gamma),F_Re(gamma))
-        else:
-            return dae51.CL_alphaRe(F_alpha(gamma),F_Re(gamma)) 
 
 #抗力係数
 #F_CD = lambda gamma: dae51.CD_alphaRe(F_alpha(gamma),F_Re(gamma)) #使用する翼型が二つ以下ならlanmbdaで定義しても良い。
@@ -255,9 +261,15 @@ def F_CL( gamma ):
 #半径位置によって参照する翼型データを場合分け
 def F_CD( gamma ):
     for gam, rad in zip(gamma, r):
-        if rad < 1.45:
-            return dae51.CD_alphaRe(F_alpha(gamma),F_Re(gamma))
-        else:
+        if rad < 0.114 or 1.362 < rad:
+            return GEMINI.CD_alphaRe(F_alpha(gamma),F_Re(gamma))
+        elif 0.114 <= rad < 0.178 or 1.33 <= rad < 1.362:
+            return ge51_25.CD_alphaRe(F_alpha(gamma),F_Re(gamma))
+        elif 0.178 <= rad < 0.242 or 1.298 <= rad < 1.33:
+            return ge51_50.CD_alphaRe(F_alpha(gamma),F_Re(gamma))
+        elif 0.242 <= rad < 0.306 or 1.202 <= rad < 1.298:
+            return ge51_75.CD_alphaRe(F_alpha(gamma),F_Re(gamma))
+        elif 0.306 <= rad < 1.202:
             return dae51.CD_alphaRe(F_alpha(gamma),F_Re(gamma))
 
 #局所揚力
@@ -291,7 +303,7 @@ F_eta = lambda gamma: U_inf * F_T(gamma) / F_P(gamma)
 
 
 
-'''
+
 #初期値（誘導速度を考慮しない揚力分布より求まる循環分布）を求める。
 
 #初期大気速度
@@ -330,7 +342,7 @@ feta = U_inf * fT / fP
 #初期循環
 fgamma = fL / (RHO * fV * delta_B)
 
-
+'''
 #当初試みていた反復法の残骸。途中でminimizeの方が良いことに気づいてやめちゃった。一応残しておく。
 
 #反復
@@ -360,27 +372,70 @@ print()
 print('start searching gamma')
 
 #目的関数
-Object = lambda gamma: numpy.linalg.norm( F_gamma(gamma) - (gamma) ) if print('thrust :',F_T(gamma) ) or True else numpy.inf
+Object = lambda gamma: numpy.linalg.norm( F_gamma(gamma) - (gamma) ) if print('norm :',numpy.linalg.norm( F_gamma(gamma) - (gamma) )) or True else numpy.inf
 
-#初期値
-ffgamma = numpy.sin(numpy.linspace(0,1,N) * numpy.pi) + 0.01
-#ffgamma = fgamma #やめたほうがいい
+#初期値(場合によってf1とf2を入れ替えること)
+f2gamma = fgamma #誘導無視揚力から求めた初期値、本来の循環により近い(と思われる)。しかし複数翼型の場合は不連続になって悪さをする可能性がある。
+f1gamma = numpy.sin(numpy.linspace(0,1,N) * numpy.pi) + 0.01 #単なる三角関数の初期値、精度は悪い(局所解に落ちやすい?)が、連続なため複数翼型の場合に有効。
 
-if numpy.isnan(F_T(ffgamma)):#初期値で推力がnanになったらあきらめる
-    print('解析結果 @ U_inf = ' ,U_inf,' RPM = ',RPM,)
+
+if numpy.isnan(F_T(f1gamma)):#初期値その１で推力がnanになったら初期値その２へ
     print('Analysis failed')
+    print('try f2gamma')
+    print()
+    print('start searching gamma again')
+
+    if numpy.isnan(F_T(f2gamma)):#初期値その２でもダメならあきらめる
+        print('解析結果 @ U_inf = ' ,U_inf,' RPM = ',RPM,)
+        print('Analysis failed(f2)')
+    
+    else:
+        result = minimize(
+            Object,
+            x0=f2gamma,
+            options={"maxiter":1e8,"ftol":1e-3},
+            method='SLSQP'
+        )
+        print('complete(f2)')
+        #print(result) #status(収束しているか)の確認用
+        print()
+
+        #結果の表示
+        print('解析結果 @ U_inf = ' ,U_inf,' RPM = ',RPM,)
+        print('Thrust: ',F_T(result.x),' N')
+        print('Power: ',F_P(result.x),' W')#速度に大して回転数が足りていないと負になる。しかしそれ以外（速度0）でも負になる事がある。謎。
+        print('Efficiency: ',F_eta(result.x)*100,' %')#推力が負になったりすると定義できない。ありえない数字（100以上や負）が出た時はそれ。
+        print('Norm: ',numpy.linalg.norm( F_gamma(result.x) - (result.x) ))#ノルム。結果の精度の指標。1以下だとうれしい。大きい時は局所解に落ちていると思われる。改善求ム
 
 else:
     result = minimize(
             Object,
-            x0=ffgamma,
-            options={"maxiter":1e8,"ftol":1e-2},#ftolは1e-3くらいが良い
+            x0=f1gamma,
+            options={"maxiter":1e8,"ftol":1e-6},
             method='SLSQP'
         )
     print('complete')
+    #print(result) #status(収束しているか)の確認用
     print()
 
     #結果の表示
     print('解析結果 @ U_inf = ' ,U_inf,' RPM = ',RPM,)
-    print(F_T(result.x),' N')
-    print(F_eta(result.x),' %')
+    print('Thrust: ',F_T(result.x),' N')
+    print('Power: ',F_P(result.x),' W')#速度に大して回転数が足りていないと負になる。しかしそれ以外（速度0）でも負になる事がある。謎。
+    print('Efficiency: ',F_eta(result.x)*100,' %')#推力が負になったりすると定義できない。ありえない数字（100以上や負）が出た時はそれ。
+    print('Norm: ',numpy.linalg.norm( F_gamma(result.x) - (result.x) ))#ノルム。結果の精度の指標。1以下だとうれしい。大きい時は局所解に落ちていると思われる。改善求ム
+
+    #循環の比較。精度の確認用
+    fig = plt.figure()
+    plt.plot(r,result.x,label='gamma')
+    plt.plot(r,F_gamma(result.x), label='F_gamma(gamma)')
+    plt.xlabel('r [m]')
+    plt.ylabel('Γ [m^2/s]')
+    plt.title(f'Comparison of gamma @ V={U_inf} RPM={RPM} (norm={numpy.linalg.norm( F_gamma(result.x) - (result.x) )})')
+    plt.legend()
+    fig.savefig('Comparison of gamma.png')
+    plt.show()
+
+    print(F_alpha(result.x))
+
+#結果は保存しないのでターミナルに表示された文字を書き留めるなどしておくこと。

@@ -88,4 +88,4 @@ def load_prop(file_name):
     print()
     return large_table , delta_B , CP
 
-large_table , delta_B , CP = load_prop('for_design_at2025-04-08_160014') #ファイル名をそのまま貼り付け
+large_table , delta_B , CP = load_prop('prop2025') #ファイル名をそのまま貼り付け

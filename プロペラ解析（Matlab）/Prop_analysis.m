@@ -1,7 +1,7 @@
 %% Load_Prop.pyの内容
 
 % 解析したいプロペラのデータを同じフォルダに入れ、以下にそのファイル名を入力
-filename = '26代ペラ.csv';
+filename = 'ペラ.csv';
 Prop = readtable(filename);
 % disp(Prop);%確認用
 
@@ -923,3 +923,4 @@ grid on
 hold off
 
 saveas(gcf,'Robustness analysis(2D).png')
+
